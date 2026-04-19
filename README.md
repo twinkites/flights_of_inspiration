@@ -2,7 +2,7 @@
 
 A minimal website for artists who need a small nudge. Type what's on your mind and get three small, actionable suggestions to help you feel creative again.
 
-Runs entirely in your browser — no server, no data sent anywhere.
+Runs entirely in your browser. No external server, no data sent anywhere.
 
 ## how it works
 
