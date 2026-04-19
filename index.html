@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flights of inspiration</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --fg: #111;
+      --mid: #888;
+      --light: #ccc;
+      --bg: #fff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fg: #eee;
+        --mid: #777;
+        --light: #444;
+        --bg: #111;
+      }
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 24px 120px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* — header — */
+
+    header {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      font-weight: normal;
+      font-style: italic;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    .tagline {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--mid);
+      font-style: normal;
+      font-family: system-ui, -apple-system, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* — form — */
+
+    .form-area {
+      width: 100%;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--mid);
+      font-family: system-ui, -apple-system, sans-serif;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--light);
+      background: transparent;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--fg);
+      resize: none;
+      outline: none;
+      padding: 0 0 12px;
+      min-height: 100px;
+      transition: border-color 0.2s;
+    }
+
+    textarea::placeholder {
+      color: var(--light);
+    }
+
+    textarea:focus {
+      border-bottom-color: var(--fg);
+    }
+
+    .actions {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--fg);
+      padding: 0;
+      transition: opacity 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      opacity: 0.5;
+    }
+
+    button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .download-note {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.72rem;
+      color: var(--light);
+      letter-spacing: 0.04em;
+    }
+
+    /* — status / progress — */
+
+    .status {
+      margin-top: 40px;
+      width: 100%;
+      min-height: 24px;
+    }
+
+    .status-text {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.75rem;
+      color: var(--mid);
+      letter-spacing: 0.06em;
+    }
+
+    .progress-bar {
+      margin-top: 8px;
+      height: 1px;
+      background: var(--light);
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: var(--fg);
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-bar.indeterminate .progress-fill {
+      width: 40%;
+      animation: slide 1.4s ease-in-out infinite;
+    }
+
+    @keyframes slide {
+      0%   { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    /* — results — */
+
+    .results {
+      margin-top: 64px;
+      width: 100%;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .results.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .results-section {
+      margin-bottom: 52px;
+    }
+
+    .results-label {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.72rem;
+      color: var(--mid);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .tasks-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tasks-list li {
+      display: flex;
+      gap: 16px;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .task-num {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.7rem;
+      color: var(--light);
+      padding-top: 4px;
+      flex-shrink: 0;
+      width: 16px;
+    }
+
+    /* — error — */
+
+    .error-msg {
+      display: none;
+      margin-top: 32px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.8rem;
+      color: #c00;
+    }
+
+    /* — footer — */
+
+    footer {
+      margin-top: auto;
+      padding-top: 80px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.7rem;
+      color: var(--light);
+      letter-spacing: 0.06em;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    footer img {
+      width: 36px;
+      height: 36px;
+      opacity: 0.18;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>flights of inspiration</h1>
+    <p class="tagline">small nudges for when you need a shift</p>
+  </header>
+
+  <main style="width:100%">
+    <div class="form-area">
+      <label for="input">what's on your mind?</label>
+      <textarea
+        id="input"
+        rows="4"
+        placeholder="a project I'm stuck on, a feeling, a place I'm at…"
+        autocomplete="off"
+        spellcheck="false"
+      ></textarea>
+      <div class="actions">
+        <button id="btn-inspire" disabled>inspire me →</button>
+        <span class="download-note" id="download-note">model downloads once on first use (~200mb)</span>
+      </div>
+    </div>
+
+    <div class="status" id="status">
+      <span class="status-text" id="status-text"></span>
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="results" id="results">
+      <div class="results-section">
+        <p class="results-label">a few small nudges</p>
+        <ul class="tasks-list" id="tasks-list"></ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <img src="1.svg" alt="Twin Kites" />
+    <span>runs entirely in your browser &middot; nothing is sent anywhere</span>
+    <span>&copy; Twin Kites LLC</span>
+  </footer>
+
+  <script type="module">
+    const btnInspire  = document.getElementById("btn-inspire");
+    const textarea    = document.getElementById("input");
+    const statusText  = document.getElementById("status-text");
+    const progressBar = document.getElementById("progress-bar");
+    const progressFill= document.getElementById("progress-fill");
+    const results     = document.getElementById("results");
+    const tasksList   = document.getElementById("tasks-list");
+    const errorMsg    = document.getElementById("error-msg");
+
+    // ── state ──
+    let workerReady = false;
+    let generating  = false;
+
+    // ── worker ──
+    const worker = new Worker("./worker.js", { type: "module" });
+
+    worker.onmessage = (e) => {
+      const { type } = e.data;
+
+      if (type === "progress") {
+        const p = e.data.progress;
+        if (p && p.status === "downloading" && p.total) {
+          const pct = Math.round((p.loaded / p.total) * 100);
+          showProgress(pct, `downloading model… ${pct}%`);
+        } else if (p && p.status === "initiate") {
+          showIndeterminate("loading model…");
+        } else if (p && p.status === "done") {
+          // file done
+        }
+      }
+
+      if (type === "ready") {
+        workerReady = true;
+        hideProgress();
+        setStatus("");
+        document.getElementById("download-note").style.display = "none";
+        if (textarea.value.trim().length > 0) btnInspire.disabled = false;
+        if (generating) runGenerate();
+      }
+
+      if (type === "token") {
+        // streaming tokens — optionally show a pulse
+      }
+
+      if (type === "complete") {
+        generating = false;
+        const text = e.data.text;
+        parseAndShow(text);
+        hideProgress();
+        setStatus("");
+        btnInspire.disabled = false;
+        btnInspire.textContent = "inspire me again →";
+      }
+
+      if (type === "error") {
+        generating = false;
+        hideProgress();
+        setStatus("");
+        btnInspire.disabled = false;
+        showError(e.data.message);
+      }
+    };
+
+    // kick off model load immediately (silent until user interacts)
+    let loadStarted = false;
+
+    function ensureLoaded() {
+      if (loadStarted) return;
+      loadStarted = true;
+      showIndeterminate("preparing model…");
+      worker.postMessage({ type: "load" });
+    }
+
+    // ── UI helpers ──
+
+    function setStatus(msg) {
+      statusText.textContent = msg;
+    }
+
+    function showProgress(pct, msg) {
+      setStatus(msg);
+      progressBar.style.display = "block";
+      progressBar.classList.remove("indeterminate");
+      progressFill.style.width = pct + "%";
+    }
+
+    function showIndeterminate(msg) {
+      setStatus(msg);
+      progressBar.style.display = "block";
+      progressBar.classList.add("indeterminate");
+      progressFill.style.width = "40%";
+    }
+
+    function hideProgress() {
+      progressBar.style.display = "none";
+      progressBar.classList.remove("indeterminate");
+      progressFill.style.width = "0%";
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = "something went wrong: " + msg;
+      errorMsg.style.display = "block";
+    }
+
+    // ── generate ──
+
+    function runGenerate() {
+      const input = textarea.value.trim();
+      if (!input) return;
+
+      errorMsg.style.display = "none";
+      results.classList.remove("visible");
+      showIndeterminate("thinking…");
+      btnInspire.disabled = true;
+
+      worker.postMessage({ type: "generate", input });
+    }
+
+    btnInspire.addEventListener("click", () => {
+      const input = textarea.value.trim();
+      if (!input) return;
+
+      generating = true;
+
+      if (!workerReady) {
+        ensureLoaded();
+        // runGenerate() will be called automatically when ready
+      } else {
+        runGenerate();
+      }
+    });
+
+    // start loading model once user focuses the textarea
+    textarea.addEventListener("focus", ensureLoaded, { once: true });
+
+    // also enable button once there's text
+    textarea.addEventListener("input", () => {
+      if (!generating && workerReady) {
+        btnInspire.disabled = textarea.value.trim().length === 0;
+      }
+    });
+
+    // ── parse & render ──
+
+    function parseAndShow(raw) {
+      // extract "1. ...", "2. ...", "3. ..." lines
+      const tasks = [...raw.matchAll(/^\s*\d+[.)]\s+(.+)/gm)]
+        .map(m => m[1].trim())
+        .filter(Boolean)
+        .slice(0, 3);
+
+      if (tasks.length === 0) {
+        showError("couldn't parse a response — try again");
+        return;
+      }
+
+      // render tasks
+      tasksList.innerHTML = "";
+      tasks.forEach((task, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="task-num">${i + 1}</span><span>${escHtml(task)}</span>`;
+        tasksList.appendChild(li);
+      });
+
+      // reveal
+      results.classList.add("visible");
+    }
+
+    function escHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
