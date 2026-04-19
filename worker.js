@@ -8,10 +8,12 @@ const MODEL_DTYPE = "q4";
 
 let generator = null;
 
+const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent ?? "");
+
 async function loadModel() {
   if (generator) return;
   generator = await pipeline("text-generation", MODEL_ID, {
-    device: "webgpu",
+    device: isIOS ? "wasm" : "webgpu",
     dtype: MODEL_DTYPE,
     progress_callback: (progress) => {
       self.postMessage({ type: "progress", progress });
@@ -64,20 +66,12 @@ self.onmessage = async (e) => {
         },
         {
           role: "user",
-          content: "What's on my mind: I have too many ideas and don't know where to start.",
-        },
-        {
-          role: "assistant",
-          content: "1. go outside and photograph five things that catch your eye\n2. set a timer for 10 minutes and make a quick messy sketch\n3. arrange objects on a table and draw the shadows they cast",
-        },
-        {
-          role: "user",
           content: `What's on my mind: ${input}`,
         },
       ];
 
       const output = await generator(messages, {
-        max_new_tokens: 256,
+        max_new_tokens: 80,
         do_sample: false,
         repetition_penalty: 1.3,
         no_repeat_ngram_size: 3,
