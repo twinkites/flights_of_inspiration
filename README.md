@@ -12,14 +12,6 @@ A small language model ([SmolLM2-360M](https://huggingface.co/HuggingFaceTB/Smol
 
 A browser with WebGPU support — Chrome or Edge 113+. Falls back to WebAssembly on unsupported browsers (slower).
 
-## local development
-
-```
-python3 -m http.server 8080
-```
-
-Then open `http://localhost:8080`. Opening `index.html` directly as a `file://` URL will not work due to Web Worker restrictions.
-
 ## files
 
 ```
