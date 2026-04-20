@@ -4,6 +4,8 @@ A minimal website for artists who need a small nudge. Type what's on your mind a
 
 Runs entirely in your browser. No external server, no data sent anywhere.
 
+Try it out here: https://twinkites.github.io/flights_of_inspiration/
+
 ## how it works
 
 A small language model ([SmolLM2-360M](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)) runs locally in the browser via [Transformers.js](https://github.com/huggingface/transformers.js) and WebGPU. On first use the model downloads once (~200mb) and is cached by the browser.
