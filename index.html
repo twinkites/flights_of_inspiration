@@ -292,6 +292,7 @@
         <button id="btn-inspire" disabled>inspire me →</button>
         <span class="download-note" id="download-note">model downloads once on first use (~200mb)</span>
       </div>
+      <p class="download-note" id="ios-note" style="display:none;margin-top:12px;">using curated nudges on this device</p>
     </div>
 
     <div class="status" id="status">
@@ -318,6 +319,8 @@
   </footer>
 
   <script type="module">
+    import { nudges } from "./nudges.js";
+
     const btnInspire  = document.getElementById("btn-inspire");
     const textarea    = document.getElementById("input");
     const statusText  = document.getElementById("status-text");
@@ -327,65 +330,83 @@
     const tasksList   = document.getElementById("tasks-list");
     const errorMsg    = document.getElementById("error-msg");
 
+    // ── iOS / iPadOS detection ──
+    // navigator.platform is "iPhone"/"iPad" on iOS; iPadOS 13+ fakes Mac,
+    // so we also check maxTouchPoints on a Mac-reported UA.
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      document.getElementById("download-note").style.display = "none";
+      document.getElementById("ios-note").style.display = "block";
+      // enable immediately — no model needed
+      textarea.addEventListener("input", () => {
+        btnInspire.disabled = textarea.value.trim().length === 0;
+      });
+    }
+
     // ── state ──
     let workerReady = false;
     let generating  = false;
+    let worker      = null;
 
-    // ── worker ──
-    const worker = new Worker("./worker.js", { type: "module" });
+    if (!isIOS) {
+      // ── worker (desktop / non-iOS only) ──
+      worker = new Worker("./worker.js", { type: "module" });
 
-    worker.onmessage = (e) => {
-      const { type } = e.data;
+      worker.onmessage = (e) => {
+        const { type } = e.data;
 
-      if (type === "progress") {
-        const p = e.data.progress;
-        if (p && p.status === "downloading" && p.total) {
-          const pct = Math.round((p.loaded / p.total) * 100);
-          showProgress(pct, `downloading model… ${pct}%`);
-        } else if (p && p.status === "initiate") {
-          showIndeterminate("loading model…");
-        } else if (p && p.status === "done") {
-          // file done
+        if (type === "progress") {
+          const p = e.data.progress;
+          if (p && p.status === "downloading" && p.total) {
+            const pct = Math.round((p.loaded / p.total) * 100);
+            showProgress(pct, `downloading model… ${pct}%`);
+          } else if (p && p.status === "initiate") {
+            showIndeterminate("loading model…");
+          } else if (p && p.status === "done") {
+            // file done
+          }
         }
-      }
 
-      if (type === "ready") {
-        workerReady = true;
-        hideProgress();
-        setStatus("");
-        document.getElementById("download-note").style.display = "none";
-        if (textarea.value.trim().length > 0) btnInspire.disabled = false;
-        if (generating) runGenerate();
-      }
+        if (type === "ready") {
+          workerReady = true;
+          hideProgress();
+          setStatus("");
+          document.getElementById("download-note").style.display = "none";
+          if (textarea.value.trim().length > 0) btnInspire.disabled = false;
+          if (generating) runGenerate();
+        }
 
-      if (type === "token") {
-        // streaming tokens — optionally show a pulse
-      }
+        if (type === "token") {
+          // streaming tokens — optionally show a pulse
+        }
 
-      if (type === "complete") {
-        generating = false;
-        const text = e.data.text;
-        parseAndShow(text);
-        hideProgress();
-        setStatus("");
-        btnInspire.disabled = false;
-        btnInspire.textContent = "inspire me again →";
-      }
+        if (type === "complete") {
+          generating = false;
+          const text = e.data.text;
+          parseAndShow(text);
+          hideProgress();
+          setStatus("");
+          btnInspire.disabled = false;
+          btnInspire.textContent = "inspire me again →";
+        }
 
-      if (type === "error") {
-        generating = false;
-        hideProgress();
-        setStatus("");
-        btnInspire.disabled = false;
-        showError(e.data.message);
-      }
-    };
+        if (type === "error") {
+          generating = false;
+          hideProgress();
+          setStatus("");
+          btnInspire.disabled = false;
+          showError(e.data.message);
+        }
+      };
+    }
 
     // kick off model load immediately (silent until user interacts)
     let loadStarted = false;
 
     function ensureLoaded() {
-      if (loadStarted) return;
+      if (isIOS || loadStarted) return;
       loadStarted = true;
       showIndeterminate("preparing model…");
       worker.postMessage({ type: "load" });
@@ -422,6 +443,43 @@
       errorMsg.style.display = "block";
     }
 
+    // ── static nudges (iOS path) ──
+
+    // track which nudges have been shown so we exhaust the list before repeating
+    let nudgePool = [];
+
+    function pickNudges(n) {
+      if (nudgePool.length < n) {
+        // refill and shuffle
+        nudgePool = [...nudges].sort(() => Math.random() - 0.5);
+      }
+      return nudgePool.splice(0, n);
+    }
+
+    function runGenerateIOS() {
+      errorMsg.style.display = "none";
+      results.classList.remove("visible");
+
+      const picked = pickNudges(3);
+
+      // small artificial pause so it feels considered, not instant
+      setTimeout(() => {
+        showNudges(picked);
+        btnInspire.disabled = false;
+        btnInspire.textContent = "inspire me again →";
+      }, 420);
+    }
+
+    function showNudges(items) {
+      tasksList.innerHTML = "";
+      items.forEach((text, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="task-num">${i + 1}</span><span>${escHtml(text)}</span>`;
+        tasksList.appendChild(li);
+      });
+      results.classList.add("visible");
+    }
+
     // ── generate ──
 
     function runGenerate() {
@@ -440,6 +498,12 @@
       const input = textarea.value.trim();
       if (!input) return;
 
+      if (isIOS) {
+        btnInspire.disabled = true;
+        runGenerateIOS();
+        return;
+      }
+
       generating = true;
 
       if (!workerReady) {
@@ -450,15 +514,17 @@
       }
     });
 
-    // start loading model once user focuses the textarea
-    textarea.addEventListener("focus", ensureLoaded, { once: true });
+    if (!isIOS) {
+      // start loading model once user focuses the textarea
+      textarea.addEventListener("focus", ensureLoaded, { once: true });
 
-    // also enable button once there's text
-    textarea.addEventListener("input", () => {
-      if (!generating && workerReady) {
-        btnInspire.disabled = textarea.value.trim().length === 0;
-      }
-    });
+      // also enable button once there's text
+      textarea.addEventListener("input", () => {
+        if (!generating && workerReady) {
+          btnInspire.disabled = textarea.value.trim().length === 0;
+        }
+      });
+    }
 
     // ── parse & render ──
 
@@ -474,16 +540,7 @@
         return;
       }
 
-      // render tasks
-      tasksList.innerHTML = "";
-      tasks.forEach((task, i) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class="task-num">${i + 1}</span><span>${escHtml(task)}</span>`;
-        tasksList.appendChild(li);
-      });
-
-      // reveal
-      results.classList.add("visible");
+      showNudges(tasks);
     }
 
     function escHtml(str) {
